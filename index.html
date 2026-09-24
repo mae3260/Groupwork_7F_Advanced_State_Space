@@ -258,7 +258,7 @@
 
         <div class="panel-box">
           <h4>Filter time constant &tau;<sub>f</sub></h4>
-          <div class="field"><label>&tau;<sub>f</sub> (s)</label><input type="text" id="input-tauf-p2" value="1e-10" spellcheck="false" /></div>
+          <div class="field"><label>&tau;<sub>f</sub> (s) &mdash; accepts 1e-10 or 10^(-10)</label><input type="text" id="input-tauf-p2" value="1e-10" spellcheck="false" /></div>
           <p class="b-readout mono" id="tauf-readout-p2" style="margin: 8px 0 0 0;"></p>
           <button class="run-btn" id="btn-p2-update">UPDATE &amp; GENERATE BODE PLOTS</button>
         </div>
@@ -334,7 +334,7 @@
 
         <div class="panel-box">
           <h4>Filter time constant &tau;<sub>f</sub></h4>
-          <div class="field"><label>&tau;<sub>f</sub> (s)</label><input type="text" id="input-tauf-p4" value="1e-10" spellcheck="false" /></div>
+          <div class="field"><label>&tau;<sub>f</sub> (s) &mdash; accepts 1e-10 or 10^(-10)</label><input type="text" id="input-tauf-p4" value="1e-10" spellcheck="false" /></div>
           <p class="b-readout mono" id="tauf-readout-p4" style="margin: 8px 0 0 0;"></p>
           <button class="run-btn" id="btn-p4-update">UPDATE (REGENERATE BODE PLOTS)</button>
         </div>
@@ -647,7 +647,14 @@
   // Tauf state -- Problem 2 and Problem 4 each have their own
   // independent tauf, since Problem 4 explores the tradeoff separately.
   // =================================================================
-  function taufFromInput(el, fallback) { const v = Number(el.value); return isFinite(v) && v > 0 ? v : fallback; }
+  function taufFromInput(el, fallback) {
+    const raw = el.value.trim();
+    let v = Number(raw);
+    if (!isFinite(v)) {
+      try { v = math.evaluate(raw); } catch (e) { v = NaN; }
+    }
+    return typeof v === "number" && isFinite(v) && v > 0 ? v : fallback;
+  }
   function formatTauf(t) {
     const exp = Math.log10(t);
     return `τf = ${t.toExponential(2)} s  (corner freq ≈ ${(1 / (2 * Math.PI * t)).toExponential(2)} Hz)`;

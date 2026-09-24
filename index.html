@@ -644,28 +644,29 @@
   }
 
   // =================================================================
-  // Shared Tauf state (Problem 2's slider is the primary control;
-  // Problem 4 has its own synced slider for interactive exploration).
+  // Tauf state -- Problem 2 and Problem 4 each have their own
+  // independent tauf, since Problem 4 explores the tradeoff separately.
   // =================================================================
-  function taufFromInput(el) { const v = Number(el.value); return isFinite(v) && v > 0 ? v : currentTauf; }
+  function taufFromInput(el, fallback) { const v = Number(el.value); return isFinite(v) && v > 0 ? v : fallback; }
   function formatTauf(t) {
     const exp = Math.log10(t);
     return `τf = ${t.toExponential(2)} s  (corner freq ≈ ${(1 / (2 * Math.PI * t)).toExponential(2)} Hz)`;
   }
-  let currentTauf = 1e-10;
+  let currentTaufP2 = 1e-10;
+  let currentTaufP4 = 1e-10;
   function syncTaufDisplays() {
-    document.getElementById("tauf-readout-p2").textContent = formatTauf(currentTauf);
-    document.getElementById("tauf-readout-p4").textContent = formatTauf(currentTauf);
-    document.getElementById("p3-tauf-echo").textContent = currentTauf.toExponential(2) + " s";
+    document.getElementById("tauf-readout-p2").textContent = formatTauf(currentTaufP2);
+    document.getElementById("tauf-readout-p4").textContent = formatTauf(currentTaufP4);
+    document.getElementById("p3-tauf-echo").textContent = currentTaufP2.toExponential(2) + " s";
   }
   document.getElementById("input-tauf-p2").addEventListener("input", (e) => {
-    currentTauf = taufFromInput(e.target); document.getElementById("input-tauf-p4").value = e.target.value; syncTaufDisplays(); scheduleSave();
+    currentTaufP2 = taufFromInput(e.target, currentTaufP2); syncTaufDisplays(); scheduleSave();
   });
   document.getElementById("input-tauf-p4").addEventListener("input", (e) => {
-    currentTauf = taufFromInput(e.target); document.getElementById("input-tauf-p2").value = e.target.value; syncTaufDisplays(); scheduleSave();
+    currentTaufP4 = taufFromInput(e.target, currentTaufP4); syncTaufDisplays(); scheduleSave();
   });
-  document.getElementById("btn-p2-update").addEventListener("click", () => { renderBodeGrid("", currentTauf); runFlags.p2 = true; scheduleSave(); });
-  document.getElementById("btn-p4-update").addEventListener("click", () => { renderBodeGrid("p4-", currentTauf); runFlags.p4bode = true; scheduleSave(); });
+  document.getElementById("btn-p2-update").addEventListener("click", () => { renderBodeGrid("", currentTaufP2); runFlags.p2 = true; scheduleSave(); });
+  document.getElementById("btn-p4-update").addEventListener("click", () => { renderBodeGrid("p4-", currentTaufP4); runFlags.p4bode = true; scheduleSave(); });
 
   // =================================================================
   // Audio: signal synthesis, pink noise, ZOH simulation, playback
@@ -812,8 +813,8 @@
       document.getElementById(statusId).textContent = "Stopped.";
     });
   }
-  buildProblemAudio("p3", () => currentTauf, () => false, "p3-audio-status", "plot-p3-wave");
-  buildProblemAudio("p4", () => currentTauf, () => document.getElementById("input-noise").checked, "p4-audio-status", "plot-p4-wave");
+  buildProblemAudio("p3", () => currentTaufP2, () => false, "p3-audio-status", "plot-p3-wave");
+  buildProblemAudio("p4", () => currentTaufP4, () => document.getElementById("input-noise").checked, "p4-audio-status", "plot-p4-wave");
 
   // =================================================================
   // PDF export
@@ -882,7 +883,7 @@
       addText("D =\n" + matrixText("grid-D", 2, 2), { size: 9.5 });
 
       addHeading("Problem 2: Frequency Response");
-      addText(`τf used: ${currentTauf.toExponential(3)} s`);
+      addText(`τf used: ${currentTaufP2.toExponential(3)} s`);
       addText("Discussion:", { bold: true, size: 10.5 });
       addText(reflectionText("input-p2-reflection"));
       if (runFlags.p2) {
@@ -897,7 +898,7 @@
 
       addHeading("Problem 4: Noise and Filter");
       addText(`Noise enabled: ${document.getElementById("input-noise").checked ? "yes" : "no"}`);
-      addText(`Final τf: ${currentTauf.toExponential(3)} s`);
+      addText(`Final τf: ${currentTaufP4.toExponential(3)} s`);
       addText("Discussion:", { bold: true, size: 10.5 });
       addText(reflectionText("input-p4-reflection"));
       if (runFlags.p4bode) { await addPlotImage("plot-p4-mag-x-vs", "vs->x mag (final)"); await addPlotImage("plot-p4-mag-a-vs", "vs->a mag (final)"); }
@@ -951,7 +952,8 @@
       });
     }
     if (state.runFlags) Object.assign(runFlags, state.runFlags);
-    if (typeof document.getElementById("input-tauf-p2").value !== "undefined") currentTauf = taufFromInput(document.getElementById("input-tauf-p2"));
+    currentTaufP2 = taufFromInput(document.getElementById("input-tauf-p2"), currentTaufP2);
+    currentTaufP4 = taufFromInput(document.getElementById("input-tauf-p4"), currentTaufP4);
     if (state.activeTab) { const b = document.querySelector(`.nav-btn[data-part="${state.activeTab}"]`); if (b) b.click(); }
   }
 
